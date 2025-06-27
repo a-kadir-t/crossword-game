@@ -1,6 +1,8 @@
+import pygame
 import random
 
 
+# --- Your existing CrosswordPuzzle class ---
 class CrosswordPuzzle:
     """
     A class to represent and generate a crossword puzzle.
@@ -57,13 +59,16 @@ class CrosswordPuzzle:
         word_length = len(word)
         intersection_count = 0  # Count how many valid intersections occur
 
-        # --- IMPORTANT NEW CHECKS: Ensure start coordinates are not negative ---
+        # --- CRITICAL CHECK: Ensure start coordinates are not negative ---
         if start_x < 0 or start_y < 0:
+            # Uncomment the line below for detailed debugging of why words are not placed.
+            # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y}, {start_x}) - Negative start coordinates.")
             return False
 
         if direction == 'horizontal':
             # 1. Out of bounds check (end of word)
             if start_x + word_length > self.width:
+                # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y}, {start_x}) - Out of bounds horizontally.")
                 return False
 
             # 2. Check cells along the word's path and surrounding perpendicular cells
@@ -71,34 +76,46 @@ class CrosswordPuzzle:
                 x = start_x + i
                 y = start_y
 
+                # Ensure coordinates are within grid bounds before accessing (redundant with initial checks but safe)
+                if not (0 <= x < self.width and 0 <= y < self.height):
+                    # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Cell out of grid bounds during iteration.")
+                    return False
+
                 current_grid_char = self.grid[y][x]
 
                 # If the cell is occupied by an existing letter
                 if current_grid_char != '#':
                     # A. Check for direct conflict: If existing letter doesn't match new word's letter
                     if current_grid_char != word[i]:
+                        # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Character mismatch ('{current_grid_char}' != '{word[i]}').")
                         return False
                     # B. If it matches, it's a potential intersection point.
-                    # We increment the count.
                     intersection_count += 1
                 else:  # The cell is currently empty ('#')
                     # C. If the cell is empty, ensure its perpendicular neighbors are also empty.
                     # This prevents words from being placed immediately adjacent (parallel) to others.
-                    if y > 0 and self.grid[y - 1][x] != '#':  # Cell above is occupied
+                    # Check cell above
+                    if y > 0 and self.grid[y - 1][x] != '#':
+                        # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Conflict with cell above (perpendicular touch).")
                         return False
-                    if y < self.height - 1 and self.grid[y + 1][x] != '#':  # Cell below is occupied
+                    # Check cell below
+                    if y < self.height - 1 and self.grid[y + 1][x] != '#':
+                        # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Conflict with cell below (perpendicular touch).")
                         return False
 
             # 3. Check horizontal boundaries (cells immediately before and after the word)
             # These cells must be empty to prevent "extending" existing horizontal words.
             if start_x > 0 and self.grid[start_y][start_x - 1] != '#':
+                # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y}, {start_x-1}) - Conflict with cell before word.")
                 return False
             if start_x + word_length < self.width and self.grid[start_y][start_x + word_length] != '#':
+                # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y}, {start_x+word_length}) - Conflict with cell after word.")
                 return False
 
         elif direction == 'vertical':
             # 1. Out of bounds check (end of word)
             if start_y + word_length > self.height:
+                # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y}, {start_x}) - Out of bounds vertically.")
                 return False
 
             # 2. Check cells along the word's path and surrounding perpendicular cells
@@ -106,27 +123,39 @@ class CrosswordPuzzle:
                 x = start_x
                 y = start_y + i
 
+                # Ensure coordinates are within grid bounds before accessing (redundant but safe)
+                if not (0 <= x < self.width and 0 <= y < self.height):
+                    # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Cell out of grid bounds during iteration.")
+                    return False
+
                 current_grid_char = self.grid[y][x]
 
                 # If the cell is occupied by an existing letter
                 if current_grid_char != '#':
                     # A. Check for direct conflict: If existing letter doesn't match new word's letter
                     if current_grid_char != word[i]:
+                        # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Character mismatch ('{current_grid_char}' != '{word[i]}').")
                         return False
                     # B. If it matches, it's a potential intersection point.
                     intersection_count += 1
                 else:  # The cell is currently empty ('#')
                     # C. If the cell is empty, ensure its perpendicular neighbors are also empty.
-                    if x > 0 and self.grid[y][x - 1] != '#':  # Cell to the left is occupied
+                    # Check cell to the left
+                    if x > 0 and self.grid[y][x - 1] != '#':
+                        # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Conflict with cell left (perpendicular touch).")
                         return False
-                    if x < self.width - 1 and self.grid[y][x + 1] != '#':  # Cell to the right is occupied
+                    # Check cell to the right
+                    if x < self.width - 1 and self.grid[y][x + 1] != '#':
+                        # print(f"DEBUG: Rejected '{word}' ({direction}) at ({y}, {x}) - Conflict with cell right (perpendicular touch).")
                         return False
 
             # 3. Check vertical boundaries (cells immediately before and after the word)
             # These cells must be empty to prevent "extending" existing vertical words.
             if start_y > 0 and self.grid[start_y - 1][start_x] != '#':
+                # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y-1}, {start_x}) - Conflict with cell before word.")
                 return False
             if start_y + word_length < self.height and self.grid[start_y + word_length][start_x] != '#':
+                # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y+word_length}, {start_x}) - Conflict with cell after word.")
                 return False
 
         # For a word to be placed, it must either be the first word (no intersections yet)
@@ -135,6 +164,7 @@ class CrosswordPuzzle:
         if not self.placed_words and intersection_count == 0:  # First word can be placed anywhere
             return True
         elif self.placed_words and intersection_count == 0:  # Subsequent words MUST intersect
+            # print(f"DEBUG: Rejected '{word}' ({direction}) at ({start_y}, {start_x}) - No intersection found for non-first word.")
             return False  # If there are already words, and this one doesn't intersect, it's invalid.
 
         return True  # If all checks pass and there are valid intersections (if not first word)
@@ -184,7 +214,8 @@ class CrosswordPuzzle:
 
             # If no words are placed yet, try random positions for the first word.
             if not self.placed_words:
-                for _ in range(self.width * self.height):  # Fewer tries for the first word
+                # Greatly increased tries for first word to ensure placement in a reasonable spot
+                for _ in range(self.width * self.height * 50):
                     direction = random.choice(possible_directions)
 
                     if direction == 'horizontal':
@@ -204,7 +235,6 @@ class CrosswordPuzzle:
                         break
             else:
                 # For subsequent words, try to find an intersection point.
-                # Iterate through existing placed words and try to connect.
                 possible_placements = []
                 for p_word in self.placed_words:
                     for char_idx_new, char_new in enumerate(word):
@@ -212,47 +242,47 @@ class CrosswordPuzzle:
                             if char_new == char_old:  # Found a potential intersection
                                 # Calculate potential start_x, start_y, and direction for the new word
                                 if p_word['direction'] == 'horizontal' and 'vertical' in possible_directions:
-                                    # New word will be vertical, intersecting horizontally placed word
                                     potential_start_x = p_word['start_x'] + char_idx_old
                                     potential_start_y = p_word['start_y'] - char_idx_new
 
-                                    if self._can_place_word(word, potential_start_x, potential_start_y, 'vertical'):
-                                        possible_placements.append(
-                                            (word, potential_start_x, potential_start_y, 'vertical'))
+                                    # Ensure proposed coordinates are valid before checking can_place_word
+                                    if potential_start_x >= 0 and potential_start_y >= 0:
+                                        if self._can_place_word(word, potential_start_x, potential_start_y, 'vertical'):
+                                            possible_placements.append(
+                                                (word, potential_start_x, potential_start_y, 'vertical'))
                                 elif p_word['direction'] == 'vertical' and 'horizontal' in possible_directions:
-                                    # New word will be horizontal, intersecting vertically placed word
                                     potential_start_x = p_word['start_x'] - char_idx_new
                                     potential_start_y = p_word['start_y'] + char_idx_old
 
-                                    if self._can_place_word(word, potential_start_x, potential_start_y, 'horizontal'):
-                                        possible_placements.append(
-                                            (word, potential_start_x, potential_start_y, 'horizontal'))
+                                    # Ensure proposed coordinates are valid before checking can_place_word
+                                    if potential_start_x >= 0 and potential_start_y >= 0:
+                                        if self._can_place_word(word, potential_start_x, potential_start_y,
+                                                                'horizontal'):
+                                            possible_placements.append(
+                                                (word, potential_start_x, potential_start_y, 'horizontal'))
 
                 random.shuffle(possible_placements)  # Shuffle to add randomness to placement
                 for placement_info in possible_placements:
                     word_to_place, sx, sy, direct = placement_info
-                    # Re-check can_place_word because the grid state might have changed during random.shuffle
+                    # Re-check can_place_word because the grid state might have changed or other words placed
                     if self._can_place_word(word_to_place, sx, sy, direct):
                         self._place_word(word_to_place, sx, sy, direct)
                         placed = True
                         break
 
                 # If no ideal intersection placement found, fall back to random placement attempts
-                # This ensures words that don't easily intersect still have a chance to be placed,
-                # provided they can fit.
                 if not placed:
-                    for _ in range(self.width * self.height * 2):  # Heuristic: try many times
+                    # Greatly increased tries for fallback random placement
+                    for _ in range(self.width * self.height * 50):
                         direction = random.choice(possible_directions)  # Only choose valid directions
 
                         if direction == 'horizontal':
                             max_x = self.width - len(word)
-                            # This check should ideally prevent the negative case, but good to be explicit
                             if max_x < 0: continue
                             start_x = random.randint(0, max_x)
                             start_y = random.randint(0, self.height - 1)
                         else:  # vertical
                             max_y = self.height - len(word)
-                            # This check should ideally prevent the negative case, but good to be explicit
                             if max_y < 0: continue
                             start_x = random.randint(0, self.width - 1)
                             start_y = random.randint(0, max_y)
@@ -268,10 +298,11 @@ class CrosswordPuzzle:
     def display_puzzle(self):
         """
         Prints the current state of the crossword grid to the console.
+        (This method is mostly for debugging, as Pygame will handle display)
         """
-        print("\nCrossword Puzzle:")
+        print("\nCrossword Puzzle (Console View - for debugging):")
         for row in self.grid:
-            print(" ".join(cell if cell != '#' else ' ' for cell in row))  # Display '#' as space
+            print(" ".join(cell if cell != '#' else ' ' for cell in row))
 
         print("\nPlaced Words (and their starting positions):")
         if not self.placed_words:
@@ -281,12 +312,96 @@ class CrosswordPuzzle:
                   f"Start Row {p_word['start_y']}, Col {p_word['start_x']}")
 
 
-# --- Example Usage ---
-if __name__ == "__main__":
-    # Create a crossword puzzle instance
-    puzzle = CrosswordPuzzle(width=20, height=15)  # Example size
+# --- Pygame GUI Implementation ---
 
-    # Add some words
+class CrosswordGUI:
+    """
+    A Pygame-based GUI for displaying the crossword puzzle.
+    """
+
+    def __init__(self, puzzle_instance, cell_size=40, margin=20):
+        """
+        Initializes the Pygame GUI.
+
+        Args:
+            puzzle_instance (CrosswordPuzzle): An instance of the generated crossword puzzle.
+            cell_size (int): The size (width and height) of each square cell in pixels.
+            margin (int): Margin around the puzzle grid in pixels.
+        """
+        pygame.init()
+
+        self.puzzle = puzzle_instance
+        self.cell_size = cell_size
+        self.margin = margin
+
+        # Calculate screen dimensions based on puzzle size and cell size
+        self.screen_width = self.puzzle.width * self.cell_size + 2 * self.margin
+        self.screen_height = self.puzzle.height * self.cell_size + 2 * self.margin + 50  # Extra space for controls/info later
+
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        pygame.display.set_caption("Crossword Puzzle")
+
+        # Define colors
+        self.BLACK = (0, 0, 0)
+        self.WHITE = (255, 255, 255)
+        self.GRID_COLOR = (150, 150, 150)  # Light gray for grid lines
+        self.LETTER_COLOR = (50, 50, 50)  # Dark gray for letters
+        self.BACKGROUND_COLOR = (240, 240, 240)  # Off-white background
+
+        # Define font for letters
+        self.font = pygame.font.Font(None, int(self.cell_size * 0.7))  # Font size based on cell size
+
+    def draw_grid(self):
+        """
+        Draws the crossword grid, including cells and letters.
+        """
+        # Fill the background
+        self.screen.fill(self.BACKGROUND_COLOR)
+
+        # Iterate through the grid to draw cells and letters
+        for row_idx in range(self.puzzle.height):
+            for col_idx in range(self.puzzle.width):
+                x = self.margin + col_idx * self.cell_size
+                y = self.margin + row_idx * self.cell_size
+
+                cell_value = self.puzzle.grid[row_idx][col_idx]
+
+                # Draw cell background
+                if cell_value == '#':  # Empty/blackout cell
+                    pygame.draw.rect(self.screen, self.BLACK, (x, y, self.cell_size, self.cell_size))
+                else:  # Playable cell
+                    pygame.draw.rect(self.screen, self.WHITE, (x, y, self.cell_size, self.cell_size))
+                    # Draw letter if present
+                    if cell_value != ' ':  # Not an intentionally blank space, but a letter
+                        text_surface = self.font.render(cell_value, True, self.LETTER_COLOR)
+                        text_rect = text_surface.get_rect(center=(x + self.cell_size // 2, y + self.cell_size // 2))
+                        self.screen.blit(text_surface, text_rect)
+
+                # Draw cell borders
+                pygame.draw.rect(self.screen, self.GRID_COLOR, (x, y, self.cell_size, self.cell_size), 1)
+
+    def run(self):
+        """
+        Runs the main Pygame event loop.
+        """
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+            self.draw_grid()  # Redraw the grid in each frame
+            pygame.display.flip()  # Update the full display Surface to the screen
+
+        pygame.quit()  # Uninitialize Pygame modules
+
+
+# --- Main execution block ---
+if __name__ == "__main__":
+    # Create and generate the crossword puzzle first
+    puzzle = CrosswordPuzzle(width=20, height=15)  # You can adjust dimensions here
+
+    # Add some words - feel free to add or remove words to test different layouts
     puzzle.add_word("PYTHON")
     puzzle.add_word("PROGRAMMING")
     puzzle.add_word("CROSSWORD")
@@ -305,11 +420,12 @@ if __name__ == "__main__":
     puzzle.add_word("ENGINEERING")
     puzzle.add_word("DATA")
     puzzle.add_word("CLOUD")
-    puzzle.add_word("ARTIFICIALINTELLIGENCE")  # This word is longer than 20, so it will now be skipped
+    puzzle.add_word("SOFTWARE")  # Added a new word
+    # puzzle.add_word("ARTIFICIALINTELLIGENCE") # This word is likely too long for current settings
 
-    # Generate the puzzle
     puzzle.generate_puzzle()
+    puzzle.display_puzzle()  # Keep this for console debugging if needed
 
-    # Display the puzzle
-    puzzle.display_puzzle()
-
+    # Create and run the Pygame GUI
+    gui = CrosswordGUI(puzzle, cell_size=30)  # Adjust cell_size for larger/smaller squares
+    gui.run()
